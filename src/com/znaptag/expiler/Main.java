@@ -11,7 +11,9 @@ public class Main
     public static void main(String[] args)
     throws Exception
     {
-        StringReader reader = new StringReader("z^2 + 8*y + x");
+        //StringReader reader = new StringReader("z^2 + 8*y + x");
+        StringReader reader = new StringReader("z*z + 8*y + x");
+        //StringReader reader = new StringReader("(z*z + 8*y) / x");
 
         // Parse expression
         Parser parser = new Parser(new Lexer(reader));
@@ -30,7 +32,14 @@ public class Main
         vars.put("x", 1.0);
 
         // Execute freshly compiled code
-        double res = expr.compute(vars);
+        long s = System.nanoTime();
+        double res = 0.0;
+        int count = 100000000;
+        for (int i = 0; i < count; i++) {
+            res = expr.compute(vars);
+        }
+        long s2 = (System.nanoTime() - s)/count;
         System.out.println("res: " + res);
+        System.out.println("time: " + s2 + "ns");
     }
 }

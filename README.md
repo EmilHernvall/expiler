@@ -6,6 +6,18 @@ subtraction, multiplication, division, exponentiation, parenthesis and
 variables) and a compiler which converts the expression into a java class that
 can be executed.
 
+What's that supposed to be good for, you may ask? Well, compared to other
+methods of evaluating an expression, allowing it to be run and optimized as
+java bytecode means that the speed can reach CPU native levels. Consider the
+expression "z\*z + 8\*y + x", which contains 2 multiplications and 3 additions.
+After repeating the iteration 100 million times, the average execution time of
+the expression is close to 15 nanoseconds, or about 3 nanoseconds per
+operation (on a Core i7-3537U). That is pretty close to the maximum
+theoretical throughput.
+
+Obviously, this is a contrived example, but it's a nice and simple introduction
+to the world of JVM byte code generation.
+
 Here's sample usage:
 
     // We have to provide the lexer with an InputStream or Reader. Here we use
