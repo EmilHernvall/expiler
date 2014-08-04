@@ -1,0 +1,79 @@
+<project name="expiler" default="compile" basedir=".">
+
+    <!-- app specific configuration -->
+    <property file="local.properties" />
+
+    <property name="src" value="src" />
+    <property name="lib" value="lib" />
+    <property name="build" value="bin" />
+    <property name="build.compiler" value="modern" />
+
+    <path id="project.classpath">
+        <pathelement location="${build}"/>
+        <fileset dir="${lib}" includes="*.jar"/>
+    </path>
+
+    <path id="jar.classpath">
+        <fileset dir="${lib}" includes="*.jar"/>
+    </path>
+
+    <target name="init">
+        <tstamp />
+        <mkdir dir="${build}" />
+    </target>
+
+    <target name="libs" depends="init">
+    </target>
+
+    <target name="compile" depends="libs">
+        <javac
+            srcdir="${src}"
+            destdir="${build}"
+            debug="on"
+            deprecation="on"
+            target="1.7"
+            source="1.7"
+            includeantruntime="false"
+            debuglevel="lines,vars,source">
+
+            <compilerarg value="-Xlint:unchecked"/>
+
+            <classpath>
+                <path refid="project.classpath"/>
+            </classpath>
+
+        </javac>
+    </target>
+
+    <target name="clean" depends="init">
+        <delete dir="${build}"/>
+    </target>
+
+    <target name="run" depends="compile">
+        <java
+            failonerror="true"
+            fork="true"
+            classname="com.znaptag.expiler.Main">
+
+            <classpath>
+                <path refid="project.classpath"/>
+            </classpath>
+        </java>
+    </target>
+
+    <target name="jar" depends="compile">
+        <manifestclasspath property="mf.classpath" jarfile="expiler.jar">
+            <classpath refid="jar.classpath" />
+        </manifestclasspath>
+
+        <jar destfile="cazanova.jar">
+            <fileset dir="${build}"/>
+
+            <manifest>
+                <attribute name="Main-Class" value="com.znaptag.expiler.Main" />
+                <attribute name="Class-Path" value="${mf.classpath}" />
+            </manifest>
+        </jar>
+    </target>
+
+</project>
