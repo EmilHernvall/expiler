@@ -5,20 +5,29 @@ import java.util.Deque;
 import java.util.ArrayDeque;
 import java.util.List;
 import java.util.ArrayList;
+import java.io.Reader;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.IOException;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 
 public class Lexer
 {
-    private InputStream stream;
+    private Reader reader;
     private StringBuilder current;
     private Deque<Token> tokens;
 
     public Lexer(InputStream stream)
     {
-        this.stream = stream;
+        this.reader = new InputStreamReader(stream);
+        this.current = new StringBuilder();
+        this.tokens = new ArrayDeque<>();
+    }
+
+    public Lexer(Reader reader)
+    {
+        this.reader = reader;
         this.current = new StringBuilder();
         this.tokens = new ArrayDeque<>();
     }
@@ -57,7 +66,7 @@ public class Lexer
                 activeTokenType = matchingTokenType;
             }
 
-            int res = stream.read();
+            int res = reader.read();
             //System.out.println("res=" + res);
             if (res == -1) {
                 endOfStream = true;

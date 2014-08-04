@@ -235,8 +235,8 @@ public class Compiler
         tree.visit(variableVisitor);
 
         Set<String> variables = variableVisitor.getVariables();
-        System.out.println("Found " + variables.size() + " variables");
-        System.out.println("Max stack depth is " + variableVisitor.getMaxStackDepth());
+        //System.out.println("Found " + variables.size() + " variables");
+        //System.out.println("Max stack depth is " + variableVisitor.getMaxStackDepth());
 
         // Setup class header
         ClassWriter cw = new ClassWriter(0);
@@ -292,7 +292,8 @@ public class Compiler
 
                 registers.put(var, regCounter);
 
-                regCounter++;
+                // doubles occupy two registers
+                regCounter += 2;
             }
 
             CodeGenerationVisitor codegen = new CodeGenerationVisitor(mv, registers);
