@@ -4,6 +4,8 @@ import java.io.IOException;
 
 import com.znaptag.expiler.ast.*;
 
+// This is a recursive descent parser, which makes do with a single token
+// lookahead. Consumes tokens from the Lexer and returns a fully formed AST.
 public class Parser
 {
     public static class ParseException extends Exception
@@ -21,12 +23,12 @@ public class Parser
         this.lexer = lexer;
     }
 
+    // Parse parenthesized expressions as well as numbers and variables
     private ASTNode parseAtoms()
     throws IOException, ParseException
     {
         Token t = lexer.next();
         if (t.getType() == Token.Type.LPAREN) {
-            //System.out.println("PAREN");
             ASTNode expr = parseAddSub();
             lexer.next();
             return expr;
@@ -34,17 +36,16 @@ public class Parser
         else if (t.getType() == Token.Type.NUMBER ||
                  t.getType() == Token.Type.DECIMALNUMBER) {
 
-            //System.out.println("NUMBER");
             return new NumberNode(Double.parseDouble(t.getRepr()));
         }
         else if (t.getType() == Token.Type.IDENT) {
-            //System.out.println("VAR");
             return new VariableNode(t.getRepr());
         }
 
         throw new ParseException("Unexpected token");
     }
 
+    // Parse exponentiations
     private ASTNode parseExp()
     throws IOException, ParseException
     {
@@ -56,7 +57,6 @@ public class Parser
 
             lexer.next();
 
-            //System.out.println("EXP");
             ASTNode right = parseExp();
             return new ExpNode(left, right);
         }
@@ -64,6 +64,7 @@ public class Parser
         return left;
     }
 
+    // Parse multiplication and divison
     private ASTNode parseMulDiv()
     throws IOException, ParseException
     {
@@ -75,7 +76,6 @@ public class Parser
 
             lexer.next();
 
-            //System.out.println("MUL");
             ASTNode right = parseMulDiv();
             return new MulNode(left, right);
         }
@@ -83,7 +83,6 @@ public class Parser
                 t.getType() == Token.Type.DIV) {
             lexer.next();
 
-            //System.out.println("DIV");
             ASTNode right = parseMulDiv();
             return new DivNode(left, right);
         }
@@ -91,6 +90,7 @@ public class Parser
         return left;
     }
 
+    // Parse addition and subtraction
     private ASTNode parseAddSub()
     throws IOException, ParseException
     {
@@ -102,7 +102,6 @@ public class Parser
 
             lexer.next();
 
-            //System.out.println("ADD");
             ASTNode right = parseAddSub();
             return new AddNode(left, right);
         }
@@ -111,7 +110,6 @@ public class Parser
 
             lexer.next();
 
-            //System.out.println("SUB");
             ASTNode right = parseAddSub();
             return new SubNode(left, right);
         }
@@ -125,6 +123,7 @@ public class Parser
         return parseAddSub();
     }
 
+    // Basic test method: Parse and output a string representation of the AST
     public static void main(String[] args)
     throws IOException, ParseException
     {

@@ -16,7 +16,9 @@ import com.znaptag.expiler.ast.*;
 
 public class Compiler
 {
-    private static class VariableVisitor implements ASTVisitor
+    // Visitor to do an initial pass over the AST and collect information about
+    // which variables are used, and the maximum stack depth
+    private static class VariableVisitor extends AbstractVisitor
     {
         private Set<String> variables;
         private int maxStackDepth = 2;
@@ -55,67 +57,45 @@ public class Compiler
         @Override
         public void visit(AddNode node)
         {
-            ASTNode left = node.getLeft();
-            left.visit(this);
-
-            ASTNode right = node.getRight();
-            right.visit(this);
-
+            super.visit(node);
             currentStackDepth--;
         }
 
         @Override
         public void visit(SubNode node)
         {
-            ASTNode left = node.getLeft();
-            left.visit(this);
-
-            ASTNode right = node.getRight();
-            right.visit(this);
-
+            super.visit(node);
             currentStackDepth--;
         }
 
         @Override
         public void visit(MulNode node)
         {
-            ASTNode left = node.getLeft();
-            left.visit(this);
-
-            ASTNode right = node.getRight();
-            right.visit(this);
-
+            super.visit(node);
             currentStackDepth--;
         }
 
         @Override
         public void visit(DivNode node)
         {
-            ASTNode left = node.getLeft();
-            left.visit(this);
-
-            ASTNode right = node.getRight();
-            right.visit(this);
-
+            super.visit(node);
             currentStackDepth--;
         }
 
         @Override
         public void visit(ExpNode node)
         {
-            ASTNode left = node.getLeft();
-            left.visit(this);
-
-            ASTNode right = node.getRight();
-            right.visit(this);
-
+            super.visit(node);
             currentStackDepth--;
         }
     }
 
-    private static class CodeGenerationVisitor implements ASTVisitor
+    // Visitor which walks the AST and generates the actual java bytecode
+    private static class CodeGenerationVisitor extends AbstractVisitor
     {
+        // asm methodvisitor for code generation
         private MethodVisitor mv;
+        // maps variable names to register indices
         private Map<String, Integer> registers;
 
         public CodeGenerationVisitor(MethodVisitor mv,
@@ -128,15 +108,14 @@ public class Compiler
         @Override
         public void visit(NumberNode node)
         {
-            //System.out.println("NUMBER: " + node.getNumber());
+            // Numbers are loaded onto the stack as constants
             mv.visitLdcInsn(node.getNumber());
         }
 
         @Override
         public void visit(VariableNode node)
         {
-            //System.out.println("VARIABLE: " + node.getName());
-
+            // Variables have already been loaded into local registers
             int reg = registers.get(node.getName());
             mv.visitVarInsn(DLOAD, reg);
         }
@@ -144,70 +123,37 @@ public class Compiler
         @Override
         public void visit(AddNode node)
         {
-            ASTNode left = node.getLeft();
-            left.visit(this);
-
-            ASTNode right = node.getRight();
-            right.visit(this);
-
-            //System.out.println("ADD");
-
+            super.visit(node);
             mv.visitInsn(DADD);
         }
 
         @Override
         public void visit(SubNode node)
         {
-            ASTNode left = node.getLeft();
-            left.visit(this);
-
-            ASTNode right = node.getRight();
-            right.visit(this);
-
-            //System.out.println("SUB");
-
+            super.visit(node);
             mv.visitInsn(DSUB);
         }
 
         @Override
         public void visit(MulNode node)
         {
-            ASTNode left = node.getLeft();
-            left.visit(this);
-
-            ASTNode right = node.getRight();
-            right.visit(this);
-
-            //System.out.println("MUL");
-
+            super.visit(node);
             mv.visitInsn(DMUL);
         }
 
         @Override
         public void visit(DivNode node)
         {
-            ASTNode left = node.getLeft();
-            left.visit(this);
-
-            ASTNode right = node.getRight();
-            right.visit(this);
-
-            //System.out.println("DIV");
-
+            super.visit(node);
             mv.visitInsn(DDIV);
         }
 
         @Override
         public void visit(ExpNode node)
         {
-            ASTNode left = node.getLeft();
-            left.visit(this);
-
-            ASTNode right = node.getRight();
-            right.visit(this);
-
-            //System.out.println("EXP");
-
+            super.visit(node);
+            // There's no opcode for exponentiation, so we call the static
+            // method Math.pow(base, exp)
             mv.visitMethodInsn(INVOKESTATIC,
                                "java/lang/Math",
                                "pow",
@@ -216,6 +162,7 @@ public class Compiler
         }
     }
 
+    // Custom class loaded that we use to define and load the class
     public static class MyClassLoader extends ClassLoader
     {
         public Class defineClass(String name, byte[] b)
@@ -230,64 +177,79 @@ public class Compiler
 
     public CompiledExpression compile(String name, ASTNode tree)
     {
-        // Find all variables used by the expression
+        // Find all variables used by the expression, as well as the max stack
+        // depth
         VariableVisitor variableVisitor = new VariableVisitor();
         tree.visit(variableVisitor);
 
         Set<String> variables = variableVisitor.getVariables();
-        //System.out.println("Found " + variables.size() + " variables");
-        //System.out.println("Max stack depth is " + variableVisitor.getMaxStackDepth());
 
         // Setup class header
         ClassWriter cw = new ClassWriter(0);
-        cw.visit(V1_7,
-                 ACC_PUBLIC,
-                 "com/znaptag/expiler/" + name,
+        cw.visit(V1_7, // java version
+                 ACC_PUBLIC, // flags, ACC_PUBLIC means public access
+                 "com/znaptag/expiler/" + name, // qualified name of new class
                  null,
-                 "java/lang/Object",
-                 new String[] { "com/znaptag/expiler/CompiledExpression" });
+                 "java/lang/Object", // parent class
+                 new String[] { "com/znaptag/expiler/CompiledExpression" } // implemented interfaces
+                 );
 
         // Create default constructor
         MethodVisitor mv1 = cw.visitMethod(ACC_PUBLIC,
-                                           "<init>",
-                                           "()V",
+                                           "<init>", // java internal name of constructors
+                                           "()V", // return type is void, no parameters needed
                                            null,
                                            null);
+
+            // load "this" reference from register 0
             mv1.visitVarInsn(ALOAD, 0);
+            // invoke java.lang.Object constructor
             mv1.visitMethodInsn(INVOKESPECIAL,
                                 "java/lang/Object",
                                 "<init>",
                                 "()V",
                                 false);
+            // return void
             mv1.visitInsn(RETURN);
             mv1.visitMaxs(2, 2);
             mv1.visitEnd();
 
         // Create computation method
         MethodVisitor mv = cw.visitMethod(ACC_PUBLIC,
-                                          "compute",
-                                          "(Ljava/util/Map;)D",
+                                          "compute", // implement the compute method
+                                          "(Ljava/util/Map;)D", // accepts a java.util.Map as parameter, returns a double
                                           null,
                                           null);
             mv.visitCode();
 
-            // Load all variables from the map into registers
+            // Load all variables from the passed map into registers
+
+            // Used to keep track of the number of local variables used
             int regCounter = 2;
+
+            // Lookup table to translate var names to register indices
             Map<String, Integer> registers = new HashMap<>();
             for (String var : variables) {
+
+                // Load the map passed to the function onto the stack
                 mv.visitVarInsn(ALOAD, 1);
+                // Put the name of the variable onto the stack, as a constant
                 mv.visitLdcInsn(var);
+                // Invoke the Map.get method to push the variable on stack
                 mv.visitMethodInsn(INVOKEINTERFACE,
                                    "java/util/Map",
                                    "get",
                                    "(Ljava/lang/Object;)Ljava/lang/Object;",
                                    true);
+                // Assert that we're dealing with a double
                 mv.visitTypeInsn(CHECKCAST, "java/lang/Double");
+                // Perform unboxing of double
                 mv.visitMethodInsn(INVOKEVIRTUAL,
                                    "java/lang/Double",
                                    "doubleValue",
                                    "()D",
                                    false);
+                // Store it into a register
                 mv.visitVarInsn(DSTORE, regCounter);
 
                 registers.put(var, regCounter);
@@ -296,10 +258,13 @@ public class Compiler
                 regCounter += 2;
             }
 
+            // Walk the AST to generate the code for the actual calculation
             CodeGenerationVisitor codegen = new CodeGenerationVisitor(mv, registers);
             tree.visit(codegen);
 
+            // Return the double
             mv.visitInsn(DRETURN);
+            // Set stack parameters
             mv.visitMaxs(2*variableVisitor.getMaxStackDepth(), regCounter+1);
             mv.visitEnd();
 
@@ -308,18 +273,20 @@ public class Compiler
 
         byte[] b = cw.toByteArray();
 
-        try {
+        // Debug code to save the generated class to disk for inspection
+        /*try {
             FileOutputStream out = new FileOutputStream(name + ".class");
             out.write(b, 0, b.length);
             out.close();
         }
         catch (IOException e) {
-        }
+        }*/
 
-        // Register class
+        // Load and register class
         MyClassLoader classLoader = new MyClassLoader();
         Class c = classLoader.defineClass("com.znaptag.expiler." + name, b);
 
+        // Create an instance and return it
         try {
             return (CompiledExpression)c.newInstance();
         }
@@ -331,6 +298,7 @@ public class Compiler
         }
     }
 
+    // Simple test case
     public static void main(String[] args)
     throws Exception
     {
