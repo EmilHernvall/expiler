@@ -2,16 +2,16 @@
 
 This is an experiment with java bytecode generation. It contains a handwritten
 lexer and parser for simple mathematical expressions (containing addition,
-subtraction, multiplication, division, exponentiation, parenthesis and
+subtraction, multiplication, division, exponentiation, parenthesis, functions and
 variables) and a compiler which converts the expression into a java class that
 can be executed.
 
 What's that supposed to be good for, you may ask? Well, compared to other
 methods of evaluating an expression, allowing it to be run and optimized as
 java bytecode means that the speed can reach CPU native levels. Consider the
-expression "z\*z + 8\*y + x", which contains 2 multiplications and 3 additions.
+expression "z\*z + 8\*y + x", which contains 2 multiplications and 2 additions.
 After repeating the iteration 100 million times, the average execution time of
-the expression is close to 15 nanoseconds, or about 3 nanoseconds per
+the expression is close to 15 nanoseconds, or about 4 nanoseconds per
 operation (on a Core i7-3537U). That is pretty close to the maximum
 theoretical throughput.
 
@@ -35,6 +35,9 @@ Here's sample usage:
     // implements the CompiledExpression interface. TestExpression is the name
     // of the class.
     Compiler compiler = new Compiler();
+
+    // (you can use compiler.registerConstant and compiler.registerFunction here)
+
     CompiledExpression expr = compiler.compile("TestExpression", tree);
 
     // Set up variables for execution

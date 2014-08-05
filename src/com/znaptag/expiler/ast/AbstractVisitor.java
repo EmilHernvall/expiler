@@ -13,6 +13,13 @@ public abstract class AbstractVisitor implements ASTVisitor
     }
 
     @Override
+    public void visit(FunctionNode node)
+    {
+        ASTNode expr = node.getExpression();
+        expr.visit(this);
+    }
+
+    @Override
     public void visit(AddNode node)
     {
         ASTNode left = node.getLeft();

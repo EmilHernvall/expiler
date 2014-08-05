@@ -28,6 +28,7 @@ public class Parser
     throws IOException, ParseException
     {
         Token t = lexer.next();
+        Token t2 = lexer.peek(0);
         if (t.getType() == Token.Type.LPAREN) {
             ASTNode expr = parseAddSub();
             lexer.next();
@@ -37,6 +38,15 @@ public class Parser
                  t.getType() == Token.Type.DECIMALNUMBER) {
 
             return new NumberNode(Double.parseDouble(t.getRepr()));
+        }
+        else if (t.getType() == Token.Type.IDENT &&
+                 t2 != null && t2.getType() == Token.Type.LPAREN) {
+
+            lexer.next();
+            ASTNode expr = parseAddSub();
+            lexer.next();
+
+            return new FunctionNode(t.getRepr(), expr);
         }
         else if (t.getType() == Token.Type.IDENT) {
             return new VariableNode(t.getRepr());
